@@ -8,6 +8,16 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+
+
+
+        <Button
+            android:id="@+id/feed_back"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:hapticFeedbackEnabled="true"
+            android:text="点我"/>
+
         <EditText
             android:id="@+id/normalEditText"
             android:layout_width="match_parent"
@@ -16,7 +26,6 @@
             android:layout_marginStart="10sp"
             android:hint="@string/keyboard_system"
             android:inputType="text" />
-
         <EditText
             android:id="@+id/safeEditText"
             android:layout_width="match_parent"
@@ -24,7 +33,24 @@
             android:layout_marginEnd="10sp"
             android:layout_marginStart="10sp"
             android:hint="@string/keyboard_demo_new"
-            android:inputType="textVisiblePassword" />
+              />
+
+        <EditText
+            android:id="@+id/safeEditText2"
+            android:layout_width="match_parent"
+            android:layout_height="50sp"
+            android:layout_marginEnd="10sp"
+            android:layout_marginStart="10sp"
+            android:hint="@string/keyboard_demo_new"
+            />
+        <EditText
+            android:id="@+id/safeEditText3"
+            android:layout_width="match_parent"
+            android:layout_height="50sp"
+            android:layout_marginEnd="10sp"
+            android:layout_marginStart="10sp"
+            android:hint="@string/keyboard_demo_new"
+            />
 
     </LinearLayout>
 

@@ -9,53 +9,31 @@
     <RelativeLayout
         android:id="@+id/keyboardHeader"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/keyboard_tip_height"
+        android:layout_height="wrap_content"
         android:background="@color/keyboardBackColor">
 
-        <LinearLayout
+
+        <ImageView
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
+            android:layout_height="20dp"
             android:layout_centerInParent="true"
-            android:orientation="horizontal"
-            tools:ignore="RelativeOverlap,UseCompoundDrawables">
+            android:scaleType="fitXY"
+            android:contentDescription="@string/description"
+            android:src="@mipmap/logo_zy" />
 
-            <ImageView
-                android:layout_width="25sp"
-                android:layout_height="25sp"
-                android:layout_gravity="center_vertical"
-                android:contentDescription="@string/description"
-                android:src="@drawable/shield" />
-
-            <TextView
-                android:id="@+id/keyboardTip"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:text="@string/safe_keyboard"
-                android:textColor="@color/lightGray"
-                android:textSize="16sp" />
-        </LinearLayout>
-
-        <FrameLayout
+        <ImageView
             android:id="@+id/keyboardDone"
-            android:layout_width="60sp"
-            android:layout_height="match_parent"
-            android:layout_alignParentEnd="true"
+            android:layout_width="30sp"
+            android:layout_height="30sp"
+            android:layout_alignParentRight="true"
+            android:contentDescription="@null"
             android:layout_centerVertical="true"
-            android:background="@drawable/bg_keyboard_done">
-
-            <ImageView
-                android:layout_width="30sp"
-                android:layout_height="30sp"
-                android:layout_gravity="center"
-                android:contentDescription="@null"
-                android:scaleType="centerInside"
-                android:src="@drawable/keyboard_done_"
-                android:textColor="@color/white"
-                android:textSize="16sp" />
-        </FrameLayout>
-
+            android:scaleType="centerInside"
+            android:src="@drawable/keyboard_done_"
+            android:textColor="@color/white"
+            android:layout_marginRight="10dp" />
     </RelativeLayout>
+
 
     <FrameLayout
         android:id="@+id/keyboardLayer"
@@ -76,7 +54,7 @@
             android:keyPreviewHeight="60dp"
             android:keyPreviewLayout="@layout/keyboard_preview_layout"
             android:keyPreviewOffset="0dp"
-            android:keyTextColor="@color/white" />
+            android:keyTextColor="@color/black" />
 
     </FrameLayout>
 </LinearLayout>

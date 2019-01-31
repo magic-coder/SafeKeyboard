@@ -16,7 +16,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 
 /**
- * Created by Administrator on 2018/3/7 0007.
+ * Created by Mustang on 2019/1/9
  */
 
 public class SafeKeyboardView extends KeyboardView {
@@ -28,6 +28,8 @@ public class SafeKeyboardView extends KeyboardView {
     private Drawable delDrawable;
     private Drawable lowDrawable;
     private Drawable upDrawable;
+    private Drawable logoDrawable;
+    private Drawable hideDrawable;
     /**
      * 按键的宽高至少是图标宽高的倍数
      */
@@ -50,6 +52,8 @@ public class SafeKeyboardView extends KeyboardView {
         this.delDrawable = null;
         this.lowDrawable = null;
         this.upDrawable = null;
+        this.logoDrawable = null;
+        this.hideDrawable = null;
     }
 
     @Override
@@ -58,8 +62,12 @@ public class SafeKeyboardView extends KeyboardView {
         try {
             List<Keyboard.Key> keys = getKeyboard().getKeys();
             for (Keyboard.Key key : keys) {
-                if (key.codes[0] == -5 || key.codes[0] == -2 || key.codes[0] == 100860 || key.codes[0] == -1)
+                if (key.codes[0] == -5 || key.codes[0] == -2 || key.codes[0] == 100860 || key.codes[0] == -1 || key.codes[0] == -7|| key.codes[0] == -8) {
                     drawSpecialKey(canvas, key);
+                } else {
+                    drawNormalKey(canvas, key);
+                }
+
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -69,20 +77,32 @@ public class SafeKeyboardView extends KeyboardView {
     private void drawSpecialKey(Canvas canvas, Keyboard.Key key) {
         if (key.codes[0] == -5) {
             drawKeyBackground(R.drawable.keyboard_change, canvas, key);
-            drawTextAndIcon(canvas, key, delDrawable);
+            drawTextAndIcon(canvas, key, delDrawable, Color.WHITE);
         } else if (key.codes[0] == -2 || key.codes[0] == 100860) {
             drawKeyBackground(R.drawable.keyboard_change, canvas, key);
-            drawTextAndIcon(canvas, key, null);
+            drawTextAndIcon(canvas, key, null, Color.WHITE);
+        } else if (key.codes[0] == -7) {
+            drawKeyBackground2(logoDrawable, canvas, key);
+           // drawTextAndIcon(canvas, key, null, Color.WHITE);
+        } else if (key.codes[0] == -8) {
+            drawKeyBackground(R.drawable.keyboard_change, canvas, key);
+            drawTextAndIcon(canvas, key, hideDrawable, Color.WHITE);
         } else if (key.codes[0] == -1) {
             if (isCap) {
                 drawKeyBackground(R.drawable.keyboard_change, canvas, key);
-                drawTextAndIcon(canvas, key, upDrawable);
+                drawTextAndIcon(canvas, key, upDrawable, Color.WHITE);
             } else {
                 drawKeyBackground(R.drawable.keyboard_change, canvas, key);
-                drawTextAndIcon(canvas, key, lowDrawable);
+                drawTextAndIcon(canvas, key, lowDrawable, Color.WHITE);
             }
         }
     }
+
+    private void drawNormalKey(Canvas canvas, Keyboard.Key key) {
+        drawKeyBackground(R.drawable.keyboard_press_bg, canvas, key);
+        drawTextAndIcon(canvas, key, null, Color.BLACK);
+    }
+
 
     private void drawKeyBackground(int id, Canvas canvas, Keyboard.Key key) {
         Drawable drawable = mContext.getResources().getDrawable(id);
@@ -94,13 +114,23 @@ public class SafeKeyboardView extends KeyboardView {
         drawable.draw(canvas);
     }
 
-    private void drawTextAndIcon(Canvas canvas, Keyboard.Key key, @Nullable Drawable drawable) {
+    private void drawKeyBackground2(Drawable drawable, Canvas canvas, Keyboard.Key key) {
+        int[] state = key.getCurrentDrawableState();
+        if (key.codes[0] != 0) {
+            drawable.setState(state);
+        }
+        //drawable.setBounds(key.x, key.y, key.x + key.width, key.y + key.height);
+        drawable.setBounds(key.x + 15, key.y + 15, key.x + key.width - 15, key.y + key.height - 15);
+        drawable.draw(canvas);
+    }
+
+    private void drawTextAndIcon(Canvas canvas, Keyboard.Key key, @Nullable Drawable drawable, int color) {
         try {
             Rect bounds = new Rect();
             Paint paint = new Paint();
             paint.setTextAlign(Paint.Align.CENTER);
             paint.setAntiAlias(true);
-            paint.setColor(Color.WHITE);
+            paint.setColor(color);
 
             if (key.label != null) {
                 String label = key.label.toString();
@@ -117,7 +147,7 @@ public class SafeKeyboardView extends KeyboardView {
                         e.printStackTrace();
                     }
                     paint.setTextSize(labelTextSize);
-                    paint.setTypeface(Typeface.DEFAULT_BOLD);
+                    paint.setTypeface(Typeface.SERIF);
                 } else {
                     int keyTextSize = 0;
                     try {
@@ -128,7 +158,7 @@ public class SafeKeyboardView extends KeyboardView {
                         e.printStackTrace();
                     }
                     paint.setTextSize(keyTextSize);
-                    paint.setTypeface(Typeface.DEFAULT);
+                    paint.setTypeface(Typeface.SERIF);
                 }
 
                 paint.getTextBounds(key.label.toString(), 0, key.label.toString().length(), bounds);
@@ -195,8 +225,18 @@ public class SafeKeyboardView extends KeyboardView {
         this.upDrawable = upDrawable;
     }
 
+    public void setLogoDrawable(Drawable logoDrawable) {
+        this.logoDrawable = logoDrawable;
+    }
+
+    public void setHideDrawable(Drawable hideDrawable) {
+        this.hideDrawable = hideDrawable;
+    }
+
     public static int px2dip(Context context, float pxValue) {
         final float scale = context.getResources().getDisplayMetrics().density;
         return (int) (pxValue / scale + 0.5f);
     }
+
+
 }

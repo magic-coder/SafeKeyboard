@@ -1,6 +1,7 @@
 package com.safe.keyboard;
 
 import android.annotation.SuppressLint;
+import android.app.Service;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.inputmethodservice.Keyboard;
@@ -9,8 +10,11 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.os.Vibrator;
 import android.text.Editable;
 import android.util.Log;
+import android.view.HapticFeedbackConstants;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -19,19 +23,27 @@ import android.view.animation.TranslateAnimation;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Toast;
+
+import com.safe.keyboard.jni.IJniInterface;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 /**
- * Created by Administrator on 2018/3/7 0007.
+ * Created by Mustang on 2019/1/9
  */
 
 public class SafeKeyboard {
 
     private static final String TAG = "SafeKeyboard";
+    private Vibrator vibrator;
 
     private Context mContext;               //上下文
 
@@ -55,6 +67,8 @@ public class SafeKeyboard {
     private Drawable delDrawable;
     private Drawable lowDrawable;
     private Drawable upDrawable;
+    private Drawable logoDrawable;
+    private Drawable downDrawable;
     private int keyboardContainerResId;
     private int keyboardResId;
 
@@ -62,34 +76,49 @@ public class SafeKeyboard {
     private TranslateAnimation hideAnimation;
     private long lastTouchTime;
     private EditText mEditText;
+    private List<EditText> editTextList;
+    private boolean isNumberRandom = false;
+    private boolean isLetterRandom = false;
+    private boolean isSymbolRandom = false;
 
-    SafeKeyboard(Context mContext, LinearLayout layout, EditText mEditText, int id, int keyId) {
+    SafeKeyboard(Context mContext, LinearLayout layout, List<EditText> editTextList, int id, int keyId, boolean isNumberRandom, boolean isLetterRandom, boolean isSymbolRandom) {
         this.mContext = mContext;
         this.layout = layout;
-        this.mEditText = mEditText;
+        this.editTextList = editTextList;
         this.keyboardContainerResId = id;
         this.keyboardResId = keyId;
-
+        this.isNumberRandom = isNumberRandom;
+        this.isLetterRandom = isLetterRandom;
+        this.isSymbolRandom = isSymbolRandom;
+        vibrator = (Vibrator) mContext.getSystemService(Service.VIBRATOR_SERVICE);
         initKeyboard();
         initAnimation();
         addListeners();
+
     }
 
-    SafeKeyboard(Context mContext, LinearLayout layout, EditText mEditText, int id, int keyId,
-                 Drawable del, Drawable low, Drawable up) {
+    SafeKeyboard(Context mContext, LinearLayout layout, List<EditText> editTextList, int id, int keyId,
+                 Drawable del, Drawable low, Drawable up, Drawable logo, Drawable down, boolean isNumberRandom, boolean isLetterRandom, boolean isSymbolRandom) {
         this.mContext = mContext;
         this.layout = layout;
-        this.mEditText = mEditText;
+        this.editTextList = editTextList;
         this.keyboardContainerResId = id;
         this.keyboardResId = keyId;
         this.delDrawable = del;
         this.lowDrawable = low;
         this.upDrawable = up;
+        this.logoDrawable = logo;
+        this.downDrawable = down;
+        this.isNumberRandom = isNumberRandom;
+        this.isLetterRandom = isLetterRandom;
+        this.isSymbolRandom = isSymbolRandom;
+        vibrator = (Vibrator) mContext.getSystemService(Service.VIBRATOR_SERVICE);
 
         initKeyboard();
         initAnimation();
         addListeners();
     }
+
 
     private void initAnimation() {
         showAnimation = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0.0f,
@@ -161,17 +190,22 @@ public class SafeKeyboard {
         keyboardView.setDelDrawable(delDrawable);
         keyboardView.setLowDrawable(lowDrawable);
         keyboardView.setUpDrawable(upDrawable);
+        keyboardView.setUpDrawable(logoDrawable);
+        keyboardView.setUpDrawable(downDrawable);
+        randomLetter();
         keyboardView.setKeyboard(keyboardLetter);                         //给键盘View设置键盘
         keyboardView.setEnabled(true);
         keyboardView.setPreviewEnabled(false);
         keyboardView.setOnKeyboardActionListener(listener);
 
-        FrameLayout done = keyContainer.findViewById(R.id.keyboardDone);
+        ImageView done = keyContainer.findViewById(R.id.keyboardDone);
         done.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (isKeyboardShown()) {
                     hideKeyboard();
+                    //Log.i("encrptPWD", IJniInterface.gEP(String.valueOf(mEditText.getId()), "1212"));
+                    //Log.i("decrptPWD", IJniInterface.gDP(String.valueOf(mEditText.getId()), "1212"));
                 }
             }
         });
@@ -184,17 +218,64 @@ public class SafeKeyboard {
         });
     }
 
+    /**
+     * 键盘数字随机切换
+     */
+    private void randomNumbers() {
+        List<Keyboard.Key> keyList = keyboardNumber.getKeys();
+        // 查找出0-9的数字键
+        List<Keyboard.Key> newkeyList = new ArrayList<Keyboard.Key>();
+        for (int i = 0; i < keyList.size(); i++) {
+            if (keyList.get(i).label != null
+                    && isNumber(keyList.get(i).label.toString())) {
+                newkeyList.add(keyList.get(i));
+            }
+        }
+        // 数组长度
+        int count = newkeyList.size();
+        // 结果集
+        List<KeyModel> resultList = new ArrayList<KeyModel>();
+        // 用一个LinkedList作为中介
+        LinkedList<KeyModel> temp = new LinkedList<KeyModel>();
+        // 初始化temp
+        for (int i = 0; i < count; i++) {
+            temp.add(new KeyModel(48 + i, i + ""));
+        }
+       /* temp.add(new KeyModel(44 , "" + (char)44));
+        temp.add(new KeyModel(46 , "" + (char)46));*/
+        // 取数
+        Random rand = new Random();
+        for (int i = 0; i < count; i++) {
+            int num = rand.nextInt(count - i);
+            resultList.add(new KeyModel(temp.get(num).getCode(), temp.get(num)
+                    .getLable()));
+            temp.remove(num);
+        }
+        for (int i = 0; i < newkeyList.size(); i++) {
+            newkeyList.get(i).label = resultList.get(i).getLable();
+            newkeyList.get(i).codes[0] = resultList.get(i).getCode();
+        }
+
+        //keyboardView.setKeyboard(keyDig);
+    }
+
+    private boolean isNumber(String str) {
+        String numStr = mContext.getString(R.string.zeroTonine);
+        return numStr.contains(str.toLowerCase());
+    }
+
     // 设置键盘点击监听
     private KeyboardView.OnKeyboardActionListener listener = new KeyboardView.OnKeyboardActionListener() {
 
         @Override
         public void onPress(int primaryCode) {
+            vibrator.vibrate(new long[]{0, 50}, -1);
             if (keyboardType == 3) {
                 keyboardView.setPreviewEnabled(false);
             } else {
                 keyboardView.setPreviewEnabled(true);
                 if (primaryCode == -1 || primaryCode == -5 || primaryCode == 32 || primaryCode == -2
-                        || primaryCode == 100860 || primaryCode == -35) {
+                        || primaryCode == 100860 || primaryCode == -35 || primaryCode == -7 || primaryCode == -8) {
                     keyboardView.setPreviewEnabled(false);
                 } else {
                     keyboardView.setPreviewEnabled(true);
@@ -215,14 +296,17 @@ public class SafeKeyboard {
                 if (primaryCode == Keyboard.KEYCODE_CANCEL) {
                     // 隐藏键盘
                     hideKeyboard();
+
                 } else if (primaryCode == Keyboard.KEYCODE_DELETE || primaryCode == -35) {
 
                     // 回退键,删除字符
                     if (editable != null && editable.length() > 0) {
                         if (start == end) { //光标开始和结束位置相同, 即没有选中内容
                             editable.delete(start - 1, start);
+                            IJniInterface.deleteKey(String.valueOf(mEditText.getId()));
                         } else { //光标开始和结束位置不同, 即选中EditText中的内容
                             editable.delete(start, end);
+
                         }
                     }
                 } else if (primaryCode == Keyboard.KEYCODE_SHIFT) {
@@ -239,6 +323,10 @@ public class SafeKeyboard {
                         keyboardType = 3;
                     }
                     switchKeyboard();
+                } else if (primaryCode == -7) {
+
+                } else if (primaryCode == -8) {
+                    hideKeyboard();
                 } else if (primaryCode == 100860) {
                     // 字母与符号切换
                     if (keyboardType == 2) { //当前是符号键盘
@@ -250,7 +338,11 @@ public class SafeKeyboard {
                 } else {
                     // 输入键盘值
                     // editable.insert(start, Character.toString((char) primaryCode));
-                    editable.replace(start, end, Character.toString((char) primaryCode));
+                    if(mEditText.getText().toString().trim().length()<=0){
+                        IJniInterface.clearKey(String.valueOf(mEditText.getId()));
+                    }
+                    editable.replace(start, end, "*");
+                    IJniInterface.addKey(String.valueOf(mEditText.getId()), Character.toString((char) primaryCode));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -259,6 +351,7 @@ public class SafeKeyboard {
 
         @Override
         public void onText(CharSequence text) {
+
 
         }
 
@@ -282,13 +375,24 @@ public class SafeKeyboard {
 
     private void switchKeyboard() {
         switch (keyboardType) {
+
             case 1:
+                if (isLetterRandom && !isCapes) {
+                    randomLetter();
+                }
                 keyboardView.setKeyboard(keyboardLetter);
                 break;
             case 2:
+                if (isSymbolRandom) {
+                    randomSymbolkey();
+                }
+
                 keyboardView.setKeyboard(keyboardSymbol);
                 break;
             case 3:
+                if (isNumberRandom) {
+                    randomNumbers();
+                }
                 keyboardView.setKeyboard(keyboardNumber);
                 break;
             default:
@@ -306,6 +410,7 @@ public class SafeKeyboard {
                     key.codes[0] += 32;
                 }
             }
+
         } else {
             for (Keyboard.Key key : keyList) {
                 if (key.label != null && isLowCaseLetter(key.label.toString())) {
@@ -313,9 +418,12 @@ public class SafeKeyboard {
                     key.codes[0] -= 32;
                 }
             }
+
         }
         isCapes = !isCapes;
         keyboardView.setCap(isCapes);
+
+
     }
 
     public void hideKeyboard() {
@@ -356,6 +464,7 @@ public class SafeKeyboard {
     };
 
     private void showKeyboard() {
+        keyboardType = 1;
         keyboardView.setKeyboard(keyboardLetter);
         keyContainer.setVisibility(View.VISIBLE);
         keyContainer.clearAnimation();
@@ -372,49 +481,79 @@ public class SafeKeyboard {
         return letters.contains(str);
     }
 
+
+
     @SuppressLint("ClickableViewAccessibility")
     private void addListeners() {
-        mEditText.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_UP) {
-                    hideSystemKeyBoard((EditText) v);
-                    if (!isKeyboardShown() && !isShowStart) {
+        for (EditText editText : editTextList) {
+
+            editText.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    if (event.getAction() == MotionEvent.ACTION_UP) {
+                        hideSystemKeyBoard((EditText) v);
+                        if(isKeyboardShown()){
+                            return false;
+                        }
+                        if (!isKeyboardShown()) {
+                            showHandler.removeCallbacks(showRun);
+                            showHandler.postDelayed(showRun, SHOW_DELAY);
+                        }
+                    }
+                    return false;
+                }
+
+            });
+            editText.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (!isKeyboardShown()) {
                         showHandler.removeCallbacks(showRun);
                         showHandler.postDelayed(showRun, SHOW_DELAY);
                     }
                 }
-                return false;
-            }
-        });
-        mEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                boolean result = isValidTouch();
-                if (v instanceof EditText) {
-                    if (!hasFocus) {
-                        if (result) {
-                            if (isKeyboardShown() && !isHideStart) {
+            });
+           editText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    boolean result = isValidTouch();
+                    if (v instanceof EditText) {
+                        if (!hasFocus) {
+                           /* if (result) {
+                                if (isKeyboardShown() && !isHideStart) {
+                                    hideKeyboard();
+                                }
+                            } else {
+                                hideKeyboard();
+                            }*/
+                            if (isKeyboardShown()){
                                 hideKeyboard();
                             }
-                        } else {
-                            hideKeyboard();
-                        }
-                    } else {
-                        hideSystemKeyBoard((EditText) v);
-                        if (result) {
-                            if (!isKeyboardShown() && !isShowStart) {
+
+                        }else {
+                            if (!isKeyboardShown() ) {
                                 showHandler.removeCallbacks(showRun);
                                 showHandler.postDelayed(showRun, SHOW_DELAY);
                             }
-                        } else {
-                            showHandler.removeCallbacks(showRun);
-                            showHandler.postDelayed(showRun, SHOW_DELAY + DELAY_TIME);
                         }
+                        /*else {
+                            hideSystemKeyBoard((EditText) v);
+                            mEditText = (EditText) v;
+                            if (result) {
+                                if (!isKeyboardShown() && isShowStart) {
+                                    showHandler.removeCallbacks(showRun);
+                                    showHandler.postDelayed(showRun, SHOW_DELAY);
+                                }
+                            } else {
+                                showHandler.removeCallbacks(showRun);
+                                showHandler.postDelayed(showRun, SHOW_DELAY + DELAY_TIME);
+                            }
+                        }*/
                     }
                 }
-            }
-        });
+            });
+        }
+
     }
 
     public boolean isShow() {
@@ -484,4 +623,138 @@ public class SafeKeyboard {
         this.upDrawable = upDrawable;
         keyboardView.setUpDrawable(upDrawable);
     }
+
+
+    private void randomLetter() {
+        List<Keyboard.Key> keyList = keyboardLetter.getKeys();
+        // 查找出a-z的数字键
+        List<Keyboard.Key> newkeyList = new ArrayList<Keyboard.Key>();
+        for (int i = 0; i < keyList.size(); i++) {
+            if (keyList.get(i).label != null
+                    && isword(keyList.get(i).label.toString())) {
+                newkeyList.add(keyList.get(i));
+            }
+        }
+        // 数组长度
+        int count = newkeyList.size();
+        // 结果集
+        List<KeyModel> resultList = new ArrayList<KeyModel>();
+        // 用一个LinkedList作为中介
+        LinkedList<KeyModel> temp = new LinkedList<KeyModel>();
+        // 初始化temp
+        for (int i = 0; i < count; i++) {
+            temp.add(new KeyModel(97 + i, "" + (char) (97 + i)));
+        }
+        //temp.add(new KeyModel(64, "" + (char) 64));//.
+        // 取数
+        Random rand = new Random();
+        for (int i = 0; i < count; i++) {
+            int num = rand.nextInt(count - i);
+            resultList.add(new KeyModel(temp.get(num).getCode(), temp.get(num)
+                    .getLable()));
+            temp.remove(num);
+        }
+        for (int i = 0; i < newkeyList.size(); i++) {
+            newkeyList.get(i).label = resultList.get(i).getLable();
+            newkeyList.get(i).codes[0] = resultList.get(i).getCode();
+        }
+
+        // keyboardView.setKeyboard(keyAlp);
+    }
+
+    private boolean isword(String str) {
+        String wordstr = "abcdefghijklmnopqrstuvwxyz";
+        if (wordstr.indexOf(str.toLowerCase()) > -1) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 标点符号键盘-随机
+     */
+
+    private void randomSymbolkey() {
+        List<Keyboard.Key> keyList = keyboardSymbol.getKeys();
+
+        // 查找出标点符号的数字键
+        List<Keyboard.Key> newkeyList = new ArrayList<Keyboard.Key>();
+        for (int i = 0; i < keyList.size(); i++) {
+            if (keyList.get(i).label != null
+                    && isInterpunction(keyList.get(i).label.toString())) {
+                newkeyList.add(keyList.get(i));
+            }
+        }
+        // 数组长度
+        int count = newkeyList.size();
+        // 结果集
+        List<KeyModel> resultList = new ArrayList<KeyModel>();
+        // 用一个LinkedList作为中介
+        LinkedList<KeyModel> temp = new LinkedList<KeyModel>();
+
+        // 初始化temp
+        temp.add(new KeyModel(33, "" + (char) 33));
+        temp.add(new KeyModel(34, "" + (char) 34));
+        temp.add(new KeyModel(35, "" + (char) 35));
+        temp.add(new KeyModel(36, "" + (char) 36));
+        temp.add(new KeyModel(37, "" + (char) 37));
+        temp.add(new KeyModel(38, "" + (char) 38));
+        temp.add(new KeyModel(39, "" + (char) 39));
+        temp.add(new KeyModel(40, "" + (char) 40));
+        temp.add(new KeyModel(41, "" + (char) 41));
+        temp.add(new KeyModel(42, "" + (char) 42));
+        temp.add(new KeyModel(43, "" + (char) 43));
+        temp.add(new KeyModel(45, "" + (char) 45));
+        temp.add(new KeyModel(47, "" + (char) 47));
+        temp.add(new KeyModel(58, "" + (char) 58));
+        temp.add(new KeyModel(59, "" + (char) 59));
+        temp.add(new KeyModel(60, "" + (char) 60));
+        temp.add(new KeyModel(61, "" + (char) 61));
+        temp.add(new KeyModel(62, "" + (char) 62));
+        temp.add(new KeyModel(63, "" + (char) 63));
+        temp.add(new KeyModel(91, "" + (char) 91));
+        temp.add(new KeyModel(92, "" + (char) 92));
+        temp.add(new KeyModel(93, "" + (char) 93));
+        temp.add(new KeyModel(94, "" + (char) 94));
+        temp.add(new KeyModel(95, "" + (char) 95));
+        temp.add(new KeyModel(96, "" + (char) 96));
+        temp.add(new KeyModel(123, "" + (char) 123));
+        temp.add(new KeyModel(124, "" + (char) 124));
+        temp.add(new KeyModel(125, "" + (char) 125));
+        temp.add(new KeyModel(126, "" + (char) 126));
+
+        // 取数
+        Random rand = new Random();
+        for (int i = 0; i < count; i++) {
+            int num = rand.nextInt(count - i);
+            resultList.add(new KeyModel(temp.get(num).getCode(), temp.get(num)
+                    .getLable()));
+            temp.remove(num);
+        }
+        for (int i = 0; i < newkeyList.size(); i++) {
+            newkeyList.get(i).label = resultList.get(i).getLable();
+            newkeyList.get(i).codes[0] = resultList.get(i).getCode();
+        }
+
+        //keyboardView.setKeyboard(keyPun);
+    }
+
+    private boolean isInterpunction(String str) {
+        String wordstr = "!\"#$%&()*+-\\/:;<=>?`'^_[]{|}~";
+        if (wordstr.indexOf(str) > -1) {
+            return true;
+        }
+        return false;
+    }
+
+    public void setLogoDrawable(Drawable logoDrawable) {
+        this.logoDrawable = logoDrawable;
+        keyboardView.setLogoDrawable(logoDrawable);
+    }
+
+    public void setHideDrawable(Drawable downDrawable) {
+        this.downDrawable = downDrawable;
+        keyboardView.setHideDrawable(downDrawable);
+    }
+
 }
