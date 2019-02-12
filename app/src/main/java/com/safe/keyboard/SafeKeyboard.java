@@ -291,8 +291,9 @@ public class SafeKeyboard {
         public void onKey(int primaryCode, int[] keyCodes) {
             try {
                 Editable editable = mEditText.getText();
-                int start = mEditText.getSelectionStart();
-                int end = mEditText.getSelectionEnd();
+                int start = mEditText.getText().length();
+                int end = start;
+                mEditText.setSelection(end);
                 if (primaryCode == Keyboard.KEYCODE_CANCEL) {
                     // 隐藏键盘
                     hideKeyboard();
@@ -483,6 +484,7 @@ public class SafeKeyboard {
 
 
 
+
     @SuppressLint("ClickableViewAccessibility")
     private void addListeners() {
         for (EditText editText : editTextList) {
@@ -526,11 +528,14 @@ public class SafeKeyboard {
                             } else {
                                 hideKeyboard();
                             }*/
+
                             if (isKeyboardShown()){
                                 hideKeyboard();
                             }
 
+
                         }else {
+                            ((EditText)v).setText("");
                             if (!isKeyboardShown() ) {
                                 showHandler.removeCallbacks(showRun);
                                 showHandler.postDelayed(showRun, SHOW_DELAY);

@@ -4,17 +4,23 @@ import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.ActionMode;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.safe.keyboard.jni.IJniInterface;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,6 +51,9 @@ public class MainActivity extends AppCompatActivity {
         editList.add(safeEdit);
         editList.add(safeEdit2);
         editList.add(safeEdit3);
+       /* disableCopyAndPaste(safeEdit);
+        disableCopyAndPaste(safeEdit2);
+        disableCopyAndPaste(safeEdit3);*/
         final Button clck = findViewById(R.id.feed_back);
         clck.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -96,5 +105,82 @@ public class MainActivity extends AppCompatActivity {
             return super.onKeyDown(keyCode, event);
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+
+    /**
+     * 禁止输入框复制粘贴菜单
+     */
+    private void disableCopyAndPaste(final EditText editText) {
+        try {
+            if (editText == null) {
+                return ;
+            }
+
+
+            editText.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    return true;
+                }
+            });
+            editText.setLongClickable(false);
+            editText.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                        // setInsertionDisabled when user touches the view
+                        setInsertionDisabled(editText);
+                    }
+
+
+                    return false;
+                }
+            });
+            editText.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
+                @Override
+                public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+                    return false;
+                }
+
+                @Override
+                public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+                    return false;
+                }
+
+                @Override
+                public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+                    return false;
+                }
+
+                @Override
+                public void onDestroyActionMode(ActionMode mode) {
+
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void setInsertionDisabled(EditText editText) {
+        try {
+            Field editorField = TextView.class.getDeclaredField("mEditor");
+            editorField.setAccessible(true);
+            Object editorObject = editorField.get(editText);
+
+            // if this view supports insertion handles
+            Class editorClass = Class.forName("android.widget.Editor");
+            Field mInsertionControllerEnabledField = editorClass.getDeclaredField("mInsertionControllerEnabled");
+            mInsertionControllerEnabledField.setAccessible(true);
+            mInsertionControllerEnabledField.set(editorObject, false);
+
+            // if this view supports selection handles
+            Field mSelectionControllerEnabledField = editorClass.getDeclaredField("mSelectionControllerEnabled");
+            mSelectionControllerEnabledField.setAccessible(true);
+            mSelectionControllerEnabledField.set(editorObject, false);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

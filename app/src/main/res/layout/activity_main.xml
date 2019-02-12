@@ -26,7 +26,7 @@
             android:layout_marginStart="10sp"
             android:hint="@string/keyboard_system"
             android:inputType="text" />
-        <EditText
+        <com.safe.keyboard.SafeEditText
             android:id="@+id/safeEditText"
             android:layout_width="match_parent"
             android:layout_height="50sp"
@@ -35,7 +35,7 @@
             android:hint="@string/keyboard_demo_new"
               />
 
-        <EditText
+        <com.safe.keyboard.SafeEditText
             android:id="@+id/safeEditText2"
             android:layout_width="match_parent"
             android:layout_height="50sp"
@@ -43,7 +43,7 @@
             android:layout_marginStart="10sp"
             android:hint="@string/keyboard_demo_new"
             />
-        <EditText
+        <com.safe.keyboard.SafeEditText
             android:id="@+id/safeEditText3"
             android:layout_width="match_parent"
             android:layout_height="50sp"
