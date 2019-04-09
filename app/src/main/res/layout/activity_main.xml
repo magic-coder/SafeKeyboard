@@ -16,7 +16,7 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:hapticFeedbackEnabled="true"
-            android:text="点我"/>
+            android:text="点我震动"/>
 
         <EditText
             android:id="@+id/normalEditText"
@@ -32,7 +32,7 @@
             android:layout_height="50sp"
             android:layout_marginEnd="10sp"
             android:layout_marginStart="10sp"
-            android:hint="@string/keyboard_demo_new"
+            android:hint="安全输入-数字"
               />
 
         <com.safe.keyboard.SafeEditText
@@ -41,7 +41,7 @@
             android:layout_height="50sp"
             android:layout_marginEnd="10sp"
             android:layout_marginStart="10sp"
-            android:hint="@string/keyboard_demo_new"
+            android:hint="安全输入-任意字符"
             />
         <com.safe.keyboard.SafeEditText
             android:id="@+id/safeEditText3"
@@ -49,8 +49,12 @@
             android:layout_height="50sp"
             android:layout_marginEnd="10sp"
             android:layout_marginStart="10sp"
-            android:hint="@string/keyboard_demo_new"
+            android:hint="安全输入-任意字符"
             />
+        <TextView
+            android:id="@+id/tv"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
     </LinearLayout>
 
